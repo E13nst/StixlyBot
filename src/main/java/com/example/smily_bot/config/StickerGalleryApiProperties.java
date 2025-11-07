@@ -34,6 +34,14 @@ public class StickerGalleryApiProperties {
         return baseUrl + "/stickersets";
     }
 
+    public String getSearchStickerSetUrl() {
+        return baseUrl + "/stickersets/search";
+    }
+
+    public String getUserStickerSetsUrl(Long userId) {
+        return baseUrl + "/stickersets/user/" + userId;
+    }
+
     private String sanitizeBaseUrl(String value) {
         if (value.endsWith("/")) {
             return value.substring(0, value.length() - 1);

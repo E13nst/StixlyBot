@@ -15,6 +15,7 @@ public class StickerSetResponse {
     private String title;
     private String name;
     private LocalDateTime createdAt;
+    private String telegramStickerSetInfo;
 
     public StickerSetResponse() {
         // Jackson constructor
@@ -58,6 +59,14 @@ public class StickerSetResponse {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public String getTelegramStickerSetInfo() {
+        return telegramStickerSetInfo;
+    }
+
+    public void setTelegramStickerSetInfo(String telegramStickerSetInfo) {
+        this.telegramStickerSetInfo = telegramStickerSetInfo;
     }
 }
 

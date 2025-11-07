@@ -201,9 +201,8 @@ public class StickerBot extends AbstractTelegramBot {
                         name = userInput + "_by_StickerGalleryBot";
                     }
                     
-                    // Проверяем уникальность имени
-                    StickerSet existingPack = stickerSetService.findByName(name);
-                    if (existingPack != null) {
+                    // Проверяем уникальность имени через Sticker Gallery API
+                    if (stickerSetService.existsInStickerGallery(name)) {
                         SendMessage errorMessage = SendMessage.builder()
                                 .chatId(msg.getChatId())
                                 .text("❌ Стикерпак с таким именем уже существует!\n\n" +
