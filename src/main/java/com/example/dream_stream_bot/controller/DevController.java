@@ -197,7 +197,7 @@ public class DevController {
                     }
                     async function testAPI() {
                         try {
-                            const response = await fetch('/api/stickersets', {
+                            const response = await fetch('/api/health', {
                                 headers: { 'X-Telegram-Init-Data': tg.initData, 'X-Telegram-Bot-Name': 'StickerGallery' }
                             });
                             if (response.ok) {

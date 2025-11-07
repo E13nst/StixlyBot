@@ -1,12 +1,11 @@
 package com.example.dream_stream_bot.service.file;
 
+import com.example.dream_stream_bot.config.StickerBotProperties;
 import com.example.dream_stream_bot.dto.StickerCacheDto;
-import com.example.dream_stream_bot.service.telegram.BotService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -23,15 +22,14 @@ public class TelegramFileService {
     private static final long MAX_FILE_SIZE = 512 * 1024; // 512 KB
     
     private final RestTemplate restTemplate;
-    private final BotService botService;
+    private final StickerBotProperties botProperties;
     private final ObjectMapper objectMapper;
     private final MimeTypeDetectionService mimeTypeService;
     
-    @Autowired
-    public TelegramFileService(BotService botService, ObjectMapper objectMapper, 
-                              MimeTypeDetectionService mimeTypeService) {
+    public TelegramFileService(StickerBotProperties botProperties, ObjectMapper objectMapper,
+                               MimeTypeDetectionService mimeTypeService) {
         this.restTemplate = new RestTemplate();
-        this.botService = botService;
+        this.botProperties = botProperties;
         this.objectMapper = objectMapper;
         this.mimeTypeService = mimeTypeService;
     }
@@ -49,12 +47,11 @@ public class TelegramFileService {
             LOGGER.debug("📥 Начинаем скачивание файла '{}' для бота '{}'", fileId, botName);
             
             // 1. Получаем токен бота
-            var botOpt = botService.findByName(botName);
-            if (botOpt.isEmpty()) {
+            if (!matchesConfiguredBot(botName)) {
                 throw new IllegalArgumentException("Бот не найден: " + botName);
             }
             
-            String token = botOpt.get().getToken();
+            String token = botProperties.getToken();
             
             // 2. Получаем информацию о файле через getFile
             TelegramFileInfo fileInfo = getFileInfo(fileId, token);
@@ -99,7 +96,7 @@ public class TelegramFileService {
      * Скачивает файл с использованием бота по умолчанию
      */
     public StickerCacheDto downloadFile(String fileId) {
-        return downloadFile(fileId, "StickerGallery");
+        return downloadFile(fileId, botProperties.getUsername());
     }
     
     /**
@@ -143,15 +140,15 @@ public class TelegramFileService {
         LOGGER.debug("📥 Скачиваем файл: {}", fileUrl.replace(token, "***"));
         
         ResponseEntity<byte[]> response = restTemplate.getForEntity(fileUrl, byte[].class);
-        
-        if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
+        byte[] body = response.getBody();
+
+        if (!response.getStatusCode().is2xxSuccessful() || body == null) {
             throw new RuntimeException("Не удалось скачать файл: " + response.getStatusCode());
         }
+
+        LOGGER.debug("✅ Файл скачан: {} байт", body.length);
         
-        byte[] fileData = response.getBody();
-        LOGGER.debug("✅ Файл скачан: {} байт", fileData.length);
-        
-        return fileData;
+        return body;
     }
     
     /**
@@ -183,5 +180,14 @@ public class TelegramFileService {
     /**
      * Record для информации о файле из Telegram
      */
+    private boolean matchesConfiguredBot(String botName) {
+        if (botName == null) {
+            return false;
+        }
+        String normalized = botName.trim();
+        return normalized.equalsIgnoreCase(botProperties.getUsername())
+                || normalized.equalsIgnoreCase(botProperties.getName());
+    }
+
     private record TelegramFileInfo(String fileId, String filePath, long fileSize) {}
 }

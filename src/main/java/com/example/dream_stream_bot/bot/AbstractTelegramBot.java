@@ -1,34 +1,29 @@
 package com.example.dream_stream_bot.bot;
 
-import com.example.dream_stream_bot.model.telegram.BotEntity;
-import com.example.dream_stream_bot.service.telegram.MessageHandlerService;
+import com.example.dream_stream_bot.config.StickerBotProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
-import org.telegram.telegrambots.meta.api.methods.ActionType;
-import org.telegram.telegrambots.meta.api.methods.send.SendChatAction;
 
 public abstract class AbstractTelegramBot extends TelegramLongPollingBot {
-    protected final BotEntity botEntity;
-    protected MessageHandlerService messageHandlerService;
+    protected final StickerBotProperties botProperties;
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractTelegramBot.class);
 
-    public AbstractTelegramBot(BotEntity botEntity, MessageHandlerService messageHandlerService) {
-        this.botEntity = botEntity;
-        this.messageHandlerService = messageHandlerService;
+    public AbstractTelegramBot(StickerBotProperties botProperties) {
+        this.botProperties = botProperties;
     }
 
     @Override
     public String getBotUsername() {
-        return botEntity.getUsername();
+        return botProperties.getUsername();
     }
 
     @Override
     public String getBotToken() {
-        return botEntity.getToken();
+        return botProperties.getToken();
     }
 
     @Override
@@ -38,34 +33,22 @@ public abstract class AbstractTelegramBot extends TelegramLongPollingBot {
         return getBotUsername() + ":" + chatId;
     }
 
-    protected void sendTypingActionWithDuration(Long chatId, String text) {
-        int charsPerSecond = 20; // скорость "печати"
-        int minSeconds = 1;
-        int maxSeconds = 5;
-        int duration = Math.max(minSeconds, Math.min(maxSeconds, text != null ? text.length() / charsPerSecond : minSeconds));
-        SendChatAction chatAction = new SendChatAction();
-        chatAction.setChatId(chatId.toString());
-        chatAction.setAction(ActionType.TYPING);
-        try {
-            for (int i = 0; i < duration; i++) {
-                execute(chatAction);
-                Thread.sleep(1000);
-            }
-            LOGGER.info("✍️ Sent typing action to chat: {} for {} seconds", chatId, duration);
-            Thread.sleep(500); // небольшая задержка перед отправкой сообщения
-        } catch (TelegramApiException | InterruptedException e) {
-            LOGGER.error("❌ Failed to send typing action | Chat: {} | Error: {}", chatId, e.getMessage(), e);
-            Thread.currentThread().interrupt();
-        }
-    }
-
     protected void sendWithLogging(SendMessage message) {
-        sendTypingActionWithDuration(Long.valueOf(message.getChatId()), message.getText());
         try {
-            execute(message);
-            LOGGER.info("✅ Message sent | Chat: {} | Text: '{}'", message.getChatId(), truncateText(message.getText(), 100));
+            var result = execute(message);
+            if (result != null) {
+                LOGGER.info("✅ Message sent successfully | Chat: {} | MessageId: {} | Text: '{}'", 
+                    message.getChatId(), result.getMessageId(), truncateText(message.getText(), 100));
+            } else {
+                LOGGER.warn("⚠️ Message sent but result is null | Chat: {} | Text: '{}'", 
+                    message.getChatId(), truncateText(message.getText(), 100));
+            }
         } catch (TelegramApiException e) {
-            LOGGER.error("❌ Failed to send message | Chat: {} | Error: {}", message.getChatId(), e.getMessage(), e);
+            LOGGER.error("❌ Failed to send message | Chat: {} | Error: {}", 
+                message.getChatId(), e.getMessage(), e);
+        } catch (Exception e) {
+            LOGGER.error("❌ Unexpected error sending message | Chat: {} | Error: {}", 
+                message.getChatId(), e.getMessage(), e);
         }
     }
 

@@ -1,5 +1,6 @@
 package com.example.dream_stream_bot.service.telegram;
 
+import com.example.dream_stream_bot.config.StickerBotProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,14 +21,14 @@ public class MessageHandlerService {
     private com.example.dream_stream_bot.service.ai.AIService aiService;
 
     // Обработчик ответов на сообщения бота в чате
-    public List<SendMessage> handleReplyToBotMessage(Message message, String conversationId, com.example.dream_stream_bot.model.telegram.BotEntity botEntity) {
+    public List<SendMessage> handleReplyToBotMessage(Message message, String conversationId, StickerBotProperties botProperties) {
         User user = message.getFrom();
         LOGGER.info("💭 Handling reply to bot message | User: {} (@{}) | Text: '{}' | ChatId: {} | ConversationId: {}", 
             user.getFirstName(), user.getUserName(), truncateText(message.getText(), 50), message.getChatId(), conversationId);
         List<SendMessage> sendMessages = new ArrayList<>();
         TelegramMessageFactory msgFactory = new TelegramMessageFactory(message.getChatId());
         String groupMessage = "User " + chatUserName(user) + " says:\n" + message.getText();
-        String response = aiService.completion(conversationId, groupMessage, botEntity.getPrompt(), botEntity.getMemWindow());
+        String response = aiService.completion(conversationId, groupMessage, botProperties.getPrompt(), botProperties.getMemWindow());
         LOGGER.info("💬 Bot response to chatId {}: '{}'", message.getChatId(), truncateText(response, 100));
         sendMessages.add(msgFactory.createReplyToMessage(response, message.getMessageId()));
         LOGGER.info("💭 Reply message prepared | User: {} (@{}) | Response length: {} chars | ChatId: {}", 
@@ -35,17 +36,17 @@ public class MessageHandlerService {
         return sendMessages;
     }
 
-    public List<SendMessage> handlePersonalMessage(Message message, String conversationId, com.example.dream_stream_bot.model.telegram.BotEntity botEntity) {
+    public List<SendMessage> handlePersonalMessage(Message message, String conversationId, StickerBotProperties botProperties) {
         User user = message.getFrom();
         LOGGER.info("💭 Handling personal message | User: {} (@{}) | Text: '{}' | ChatId: {} | ConversationId: {}", 
             user.getFirstName(), user.getUserName(), truncateText(message.getText(), 50), message.getChatId(), conversationId);
         List<SendMessage> sendMessages = new ArrayList<>();
         TelegramMessageFactory msgFactory = new TelegramMessageFactory(message.getChatId());
-        String prompt = botEntity.getPrompt() != null ? botEntity.getPrompt() : "";
+        String prompt = botProperties.getPrompt() != null ? botProperties.getPrompt() : "";
         if (user.getFirstName() != null && !user.getFirstName().isEmpty()) {
             prompt = prompt + "\nUser name is " + user.getFirstName() + ".";
         }
-        String response = aiService.completion(conversationId, message.getText(), prompt, botEntity.getMemWindow());
+        String response = aiService.completion(conversationId, message.getText(), prompt, botProperties.getMemWindow());
         LOGGER.info("💬 Bot response to chatId {}: '{}'", message.getChatId(), truncateText(response, 100));
         sendMessages.add(msgFactory.createMarkdownMessage(response));
         return sendMessages;

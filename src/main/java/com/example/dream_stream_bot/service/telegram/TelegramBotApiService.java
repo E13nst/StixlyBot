@@ -1,19 +1,14 @@
 package com.example.dream_stream_bot.service.telegram;
 
-import com.example.dream_stream_bot.model.telegram.BotEntity;
-import com.example.dream_stream_bot.service.telegram.BotService;
+import com.example.dream_stream_bot.config.StickerBotProperties;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 import org.springframework.web.client.RestClientException;
-
-import java.util.Optional;
+import org.springframework.web.client.RestTemplate;
 
 /**
  * Сервис для работы с Telegram Bot API
@@ -25,13 +20,12 @@ public class TelegramBotApiService {
     private static final String TELEGRAM_API_URL = "https://api.telegram.org/bot";
     
     private final RestTemplate restTemplate;
-    private final BotService botService;
+    private final StickerBotProperties botProperties;
     private final ObjectMapper objectMapper;
-    
-    @Autowired
-    public TelegramBotApiService(BotService botService, ObjectMapper objectMapper) {
+
+    public TelegramBotApiService(StickerBotProperties botProperties, ObjectMapper objectMapper) {
         this.restTemplate = new RestTemplate();
-        this.botService = botService;
+        this.botProperties = botProperties;
         this.objectMapper = objectMapper;
     }
     
@@ -43,20 +37,14 @@ public class TelegramBotApiService {
      * @param botName имя бота (для получения токена)
      * @return JSON строка с информацией о стикерсете или null если ошибка
      */
-    @Cacheable(value = "stickerSetInfo", key = "#stickerSetName + '_' + #botName", unless = "#result == null")
+    // Removed sticker set caching API (sticker gallery removed)
     public String getStickerSetInfo(String stickerSetName, String botName) {
         try {
             LOGGER.debug("🔍 Получение информации о стикерсете '{}' для бота '{}'", stickerSetName, botName);
             
             // Получаем токен бота
-            Optional<BotEntity> botOpt = botService.findByName(botName);
-            if (botOpt.isEmpty()) {
-                LOGGER.warn("⚠️ Бот '{}' не найден в базе данных", botName);
-                throw new IllegalArgumentException("Бот не найден: " + botName);
-            }
-            
-            BotEntity bot = botOpt.get();
-            String token = bot.getToken();
+            validateBotName(botName);
+            String token = botProperties.getToken();
             
             // Формируем URL для запроса
             String url = TELEGRAM_API_URL + token + "/getStickerSet?name=" + stickerSetName;
@@ -105,6 +93,18 @@ public class TelegramBotApiService {
      * @return JSON строка с информацией о стикерсете или null если ошибка
      */
     public String getStickerSetInfo(String stickerSetName) {
-        return getStickerSetInfo(stickerSetName, "StickerGallery");
+        return getStickerSetInfo(stickerSetName, botProperties.getUsername());
+    }
+
+    private void validateBotName(String botName) {
+        if (botName == null) {
+            throw new IllegalArgumentException("Имя бота не может быть пустым");
+        }
+
+        String normalized = botName.trim();
+        if (!normalized.equalsIgnoreCase(botProperties.getUsername())
+                && !normalized.equalsIgnoreCase(botProperties.getName())) {
+            throw new IllegalArgumentException("Поддерживается только бот: " + botProperties.getUsername());
+        }
     }
 }

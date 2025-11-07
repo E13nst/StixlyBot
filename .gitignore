@@ -64,3 +64,6 @@ doc.txt
 
 # Python Sticker Processor Service (deployed separately)
 /sticker-processor-service/
+
+# Cursor assistant workspace files
+/.cursor/

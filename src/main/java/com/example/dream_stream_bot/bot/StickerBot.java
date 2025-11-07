@@ -1,24 +1,19 @@
 package com.example.dream_stream_bot.bot;
 
-import com.example.dream_stream_bot.model.telegram.BotEntity;
-import com.example.dream_stream_bot.service.telegram.MessageHandlerService;
+import com.example.dream_stream_bot.config.StickerBotProperties;
 import com.example.dream_stream_bot.service.telegram.StickerService;
-
 import com.example.dream_stream_bot.service.telegram.UserStateService;
 import com.example.dream_stream_bot.service.telegram.StickerSetService;
 import com.example.dream_stream_bot.model.keyboard.InlineKeyboardMarkupBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
-import org.telegram.telegrambots.meta.api.objects.CallbackQuery;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
-import org.springframework.beans.factory.annotation.Autowired;
 import com.example.dream_stream_bot.model.telegram.StickerSet;
 
 import java.util.List;
-import java.util.ArrayList;
 import java.time.Instant;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
@@ -34,10 +29,10 @@ public class StickerBot extends AbstractTelegramBot {
     private final UserStateService userStateService;
     private final StickerSetService stickerSetService;
     
-    public StickerBot(BotEntity botEntity, MessageHandlerService messageHandlerService, 
+    public StickerBot(StickerBotProperties botProperties,
                      UserStateService userStateService, StickerSetService stickerSetService,
                      StickerService stickerService) {
-        super(botEntity, messageHandlerService);
+        super(botProperties);
         this.stickerService = stickerService;
         this.userStateService = userStateService;
         this.stickerSetService = stickerSetService;
@@ -101,7 +96,6 @@ public class StickerBot extends AbstractTelegramBot {
 
         if (update.hasMessage()) {
             Message msg = update.getMessage();
-            String conversationId = getConversationId(msg.getChatId());
 
             // Проверяем, нужно ли отвечать (для групповых чатов)
             boolean isGroup = msg.isGroupMessage() || msg.isSuperGroupMessage();
@@ -111,9 +105,9 @@ public class StickerBot extends AbstractTelegramBot {
                         msg.getReplyToMessage().getFrom().getUserName() != null &&
                         msg.getReplyToMessage().getFrom().getUserName().equalsIgnoreCase(getBotUsername());
                 boolean isMention = msg.hasText() && msg.getText().toLowerCase().contains("@" + getBotUsername().toLowerCase());
-                boolean isName = msg.hasText() && msg.getText().toLowerCase().contains(botEntity.getName().toLowerCase());
-                boolean isAlias = msg.hasText() && botEntity.getBotTriggersList().stream().anyMatch(alias -> !alias.isEmpty() && msg.getText().toLowerCase().contains(alias.toLowerCase()));
-                boolean isTrigger = msg.hasText() && botEntity.getBotTriggersList().stream().anyMatch(trigger -> !trigger.isEmpty() && msg.getText().toLowerCase().contains(trigger.toLowerCase()));
+                boolean isName = msg.hasText() && msg.getText().toLowerCase().contains(botProperties.getName().toLowerCase());
+                boolean isAlias = msg.hasText() && botProperties.getBotTriggersList().stream().anyMatch(alias -> !alias.isEmpty() && msg.getText().toLowerCase().contains(alias.toLowerCase()));
+                boolean isTrigger = msg.hasText() && botProperties.getBotTriggersList().stream().anyMatch(trigger -> !trigger.isEmpty() && msg.getText().toLowerCase().contains(trigger.toLowerCase()));
 
                 if (!(isReplyToBot || isMention || isName || isAlias || isTrigger)) {
                     return; // Игнорируем сообщение, если не обращение к боту
@@ -541,7 +535,7 @@ public class StickerBot extends AbstractTelegramBot {
             // Вычисляем HMAC-SHA256 подпись согласно документации Telegram
             // Шаг 1: Создаем секретный ключ (secret_key = HMAC-SHA256(bot_token, "WebAppData"))
             Mac mac = Mac.getInstance("HmacSHA256");
-            SecretKeySpec botTokenKeySpec = new SecretKeySpec(botEntity.getToken().getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+            SecretKeySpec botTokenKeySpec = new SecretKeySpec(botProperties.getToken().getBytes(StandardCharsets.UTF_8), "HmacSHA256");
             mac.init(botTokenKeySpec);
             byte[] secretKey = mac.doFinal("WebAppData".getBytes(StandardCharsets.UTF_8));
             
