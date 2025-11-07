@@ -8,7 +8,6 @@ import java.util.concurrent.ConcurrentMap;
 
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.messages.Message;
-import org.springframework.stereotype.Component;
 
 public class InMemoryChatMemory implements ChatMemory {
 
