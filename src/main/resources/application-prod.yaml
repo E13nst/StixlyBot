@@ -3,7 +3,7 @@ server:
 
 spring:
   application:
-    name: telegram-bot-dream-stream
+    name: smily-bot
   ai:
     openai:
       api-key: ${OPENAI_API_KEY}
@@ -43,7 +43,7 @@ telegram:
 
 logging:
   level:
-    com.example.dream_stream_bot: INFO
+    com.example.smily_bot: INFO
     org.springframework.web: INFO
     org.telegram: INFO
   pattern:

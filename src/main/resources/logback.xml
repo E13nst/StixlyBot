@@ -19,11 +19,11 @@
     </appender>
 
     <!-- Application specific loggers -->
-    <logger name="com.example.dream_stream_bot" level="info" />
-    <logger name="com.example.dream_stream_bot.TelegramChatBot" level="info" />
-    <logger name="com.example.dream_stream_bot.service" level="info" />
-    <logger name="com.example.dream_stream_bot.controller" level="info" />
-    <logger name="com.example.dream_stream_bot.config" level="info" />
+    <logger name="com.example.smily_bot" level="info" />
+    <logger name="com.example.smily_bot.TelegramChatBot" level="info" />
+    <logger name="com.example.smily_bot.service" level="info" />
+    <logger name="com.example.smily_bot.controller" level="info" />
+    <logger name="com.example.smily_bot.config" level="info" />
     
     <!-- Spring framework loggers -->
     <logger name="org.springframework" level="warn" />

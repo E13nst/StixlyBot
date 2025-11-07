@@ -3,7 +3,7 @@ server:
 
 spring:
   application:
-    name: telegram-bot-dream-stream
+    name: smily-bot
   ai:
     openai:
       api-key: ${OPENAI_API_KEY}
@@ -74,7 +74,7 @@ logging:
     org.hibernate.type.descriptor.sql.BasicBinder: INFO
     com.zaxxer.hikari: INFO
     org.springframework.orm.jpa: INFO
-    com.example.dream_stream_bot: DEBUG
+    com.example.smily_bot: DEBUG
     org.springframework.boot.autoconfigure: INFO
     org.springframework.security: DEBUG
   

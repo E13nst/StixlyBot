@@ -92,7 +92,7 @@ make deploy
 ```
 src/
 ├── main/
-│   ├── java/com/example/dream_stream_bot/
+│   ├── java/com/example/smily_bot/
 │   │   ├── bot/                    # Telegram бот
 │   │   ├── config/                 # Конфигурация Spring
 │   │   ├── controller/             # REST контроллеры
@@ -113,7 +113,7 @@ src/
 ```bash
 # База данных
 DB_HOST=localhost
-DB_NAME=dream_stream
+DB_NAME=smily_bot
 DB_USERNAME=username
 DB_PASSWORD=password
 
