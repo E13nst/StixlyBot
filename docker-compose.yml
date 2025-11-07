@@ -1,8 +1,8 @@
 version: '3.8'
 
 services:
-  smily-bot:
-    image: smily-bot:latest
+  stixly-bot:
+    image: stixly-bot:latest
     build:
       context: .
       dockerfile: Dockerfile

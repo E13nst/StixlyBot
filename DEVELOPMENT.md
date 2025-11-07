@@ -92,7 +92,7 @@ make deploy
 ```
 src/
 ├── main/
-│   ├── java/com/example/smily_bot/
+│   ├── java/com/example/stixly_bot/
 │   │   ├── bot/                    # Telegram бот
 │   │   ├── config/                 # Конфигурация Spring
 │   │   ├── controller/             # REST контроллеры
@@ -113,7 +113,7 @@ src/
 ```bash
 # База данных
 DB_HOST=localhost
-DB_NAME=smily_bot
+DB_NAME=stixly_bot
 DB_USERNAME=username
 DB_PASSWORD=password
 

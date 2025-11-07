@@ -3,7 +3,7 @@ server:
 
 spring:
   application:
-    name: smily-bot
+    name: stixly-bot
   ai:
     openai:
       api-key: ${OPENAI_API_KEY}
@@ -43,7 +43,7 @@ telegram:
 
 logging:
   level:
-    com.example.smily_bot: INFO
+    com.example.stixly_bot: INFO
     org.springframework.web: INFO
     org.telegram: INFO
   pattern:

@@ -11,5 +11,5 @@ pluginManagement {
     }
 }
 
-rootProject.name = 'smily-bot'
+rootProject.name = 'stixly-bot'
 
