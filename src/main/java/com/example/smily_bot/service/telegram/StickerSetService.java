@@ -4,15 +4,13 @@ import com.example.smily_bot.dto.PageRequest;
 import com.example.smily_bot.dto.PageResponse;
 import com.example.smily_bot.dto.StickerSetDto;
 import com.example.smily_bot.model.telegram.StickerSet;
-import com.example.smily_bot.model.telegram.StickerSetRepository;
 import com.example.smily_bot.service.external.stickergallery.StickerGalleryApiClient;
 import com.example.smily_bot.service.external.stickergallery.StickerSetCreateRequest;
-import com.example.smily_bot.service.external.stickergallery.StickerSetResponse;
 import com.example.smily_bot.service.external.stickergallery.StickerSetPageResponse;
+import com.example.smily_bot.service.external.stickergallery.StickerSetResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 
@@ -24,15 +22,12 @@ import java.util.stream.Collectors;
 public class StickerSetService {
     
     private static final Logger LOGGER = LoggerFactory.getLogger(StickerSetService.class);
-    private final StickerSetRepository stickerSetRepository;
     private final TelegramBotApiService telegramBotApiService;
     private final StickerGalleryApiClient stickerGalleryApiClient;
     
     @Autowired
-    public StickerSetService(StickerSetRepository stickerSetRepository,
-                             TelegramBotApiService telegramBotApiService,
+    public StickerSetService(TelegramBotApiService telegramBotApiService,
                              StickerGalleryApiClient stickerGalleryApiClient) {
-        this.stickerSetRepository = stickerSetRepository;
         this.telegramBotApiService = telegramBotApiService;
         this.stickerGalleryApiClient = stickerGalleryApiClient;
     }
@@ -60,12 +55,19 @@ public class StickerSetService {
 
     @Nullable
     public StickerSet findByName(String name) {
-        return stickerSetRepository.findByName(name).orElse(null);
+        StickerSetResponse response = stickerGalleryApiClient.getStickerSetByName(name);
+        return response != null ? mapToStickerSet(response) : null;
     }
 
     @Nullable
     public StickerSet findByTitle(String title) {
-        return stickerSetRepository.findByTitle(title);
+        StickerSetPageResponse response = stickerGalleryApiClient.getStickerSets(0, 100, "createdAt", "DESC",
+                null, null, null, null, null);
+        return response.getContent().stream()
+                .map(this::mapToStickerSet)
+                .filter(set -> set.getTitle() != null && set.getTitle().equalsIgnoreCase(title))
+                .findFirst()
+                .orElse(null);
     }
 
     public List<StickerSet> findByUserId(Long userId) {
@@ -78,22 +80,17 @@ public class StickerSetService {
     @Nullable
     @SuppressWarnings("null")
     public StickerSet findById(Long id) {
-        return stickerSetRepository.findById(id).orElse(null);
+        StickerSetResponse response = stickerGalleryApiClient.getStickerSetById(id);
+        return response != null ? mapToStickerSet(response) : null;
     }
     
     @SuppressWarnings("null")
     public List<StickerSet> findAll() {
-        return stickerSetRepository.findAll();
-    }
-    
-    @SuppressWarnings("null")
-    public StickerSet save(StickerSet stickerSet) {
-        return stickerSetRepository.save(stickerSet);
-    }
-    
-    @SuppressWarnings("null")
-    public void deleteById(Long id) {
-        stickerSetRepository.deleteById(id);
+        StickerSetPageResponse response = stickerGalleryApiClient.getStickerSets(0, 100, "createdAt", "DESC",
+                null, null, null, null, null);
+        return response.getContent().stream()
+                .map(this::mapToStickerSet)
+                .collect(Collectors.toList());
     }
     
     /**
@@ -103,11 +100,33 @@ public class StickerSetService {
     public PageResponse<StickerSetDto> findAllWithPagination(PageRequest pageRequest) {
         LOGGER.debug("📋 Получение всех стикерсетов с пагинацией: page={}, size={}", 
                 pageRequest.getPage(), pageRequest.getSize());
-        
-        Page<StickerSet> stickerSetsPage = stickerSetRepository.findAll(pageRequest.toPageable());
-        List<StickerSetDto> enrichedDtos = enrichWithBotApiData(stickerSetsPage.getContent());
-        
-        return PageResponse.of(stickerSetsPage, enrichedDtos);
+        StickerSetPageResponse response = stickerGalleryApiClient.getStickerSets(
+                pageRequest.getPage(),
+                pageRequest.getSize(),
+                pageRequest.getSort(),
+                pageRequest.getDirection(),
+                null,
+                null,
+                null,
+                null,
+                null);
+
+        List<StickerSet> stickerSets = response.getContent().stream()
+                .map(this::mapToStickerSet)
+                .collect(Collectors.toList());
+        List<StickerSetDto> enrichedDtos = enrichWithBotApiData(stickerSets);
+
+        return new PageResponse<>(
+                enrichedDtos,
+                response.getPage(),
+                response.getSize(),
+                response.getTotalElements(),
+                response.getTotalPages(),
+                response.isFirst(),
+                response.isLast(),
+                response.isHasNext(),
+                response.isHasPrevious()
+        );
     }
     
     /**
@@ -124,9 +143,10 @@ public class StickerSetService {
                 pageRequest.getSort(),
                 pageRequest.getDirection());
 
-        List<StickerSetDto> dtos = response.getContent().stream()
-                .map(this::mapToStickerSetDto)
+        List<StickerSet> stickerSets = response.getContent().stream()
+                .map(this::mapToStickerSet)
                 .collect(Collectors.toList());
+        List<StickerSetDto> dtos = enrichWithBotApiData(stickerSets);
 
         return new PageResponse<>(
                 dtos,
@@ -224,16 +244,5 @@ public class StickerSetService {
         stickerSet.setName(response.getName());
         stickerSet.setCreatedAt(response.getCreatedAt());
         return stickerSet;
-    }
-
-    private StickerSetDto mapToStickerSetDto(StickerSetResponse response) {
-        StickerSetDto dto = new StickerSetDto();
-        dto.setId(response.getId());
-        dto.setUserId(response.getUserId());
-        dto.setTitle(response.getTitle());
-        dto.setName(response.getName());
-        dto.setCreatedAt(response.getCreatedAt());
-        dto.setTelegramStickerSetInfo(response.getTelegramStickerSetInfo());
-        return dto;
     }
 } 

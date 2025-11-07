@@ -59,40 +59,6 @@ public class StickerGalleryApiClient {
         }
     }
 
-    public boolean stickerSetExistsByName(String name) {
-        String url = UriComponentsBuilder.fromHttpUrl(Objects.requireNonNull(properties.getSearchStickerSetUrl()))
-                .queryParam("name", name)
-                .toUriString();
-        LOGGER.debug("🔍 Проверяем существование стикерсета '{}' через Sticker Gallery API", name);
-
-        try {
-            ResponseEntity<StickerSetSearchResponse> response = restTemplate.getForEntity(url, StickerSetSearchResponse.class);
-
-            StickerSetSearchResponse body = response.getBody();
-            if (response.getStatusCode().equals(HttpStatus.OK) && body != null) {
-                boolean exists = body.isExists();
-                LOGGER.debug("ℹ️ Sticker Gallery API сообщает, что '{}' существует: {}", name, exists);
-                return exists;
-            }
-
-            LOGGER.warn("⚠️ Sticker Gallery API вернул неожиданный ответ при проверке '{}': status={}, body={}",
-                    response.getStatusCode(), body);
-            return false;
-        } catch (RestClientResponseException e) {
-            if (e.getStatusCode() == HttpStatus.NOT_FOUND) {
-                LOGGER.debug("✅ Sticker Gallery API: стикерсет '{}' не найден", name);
-                return false;
-            }
-
-            LOGGER.error("❌ Ошибка ответа Sticker Gallery API при проверке '{}': status={}, body={}",
-                    name, e.getStatusCode(), e.getResponseBodyAsString());
-            throw new BotException("Sticker Gallery API failed during search: " + e.getStatusCode(), e);
-        } catch (RestClientException e) {
-            LOGGER.error("❌ Сетевая ошибка Sticker Gallery API при проверке '{}': {}", name, e.getMessage());
-            throw new BotException("Failed to call Sticker Gallery API", e);
-        }
-    }
-
     public StickerSetPageResponse getStickerSetsByUser(Long userId, int page, int size, String sort, String direction) {
         UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(Objects.requireNonNull(properties.getUserStickerSetsUrl(userId)))
                 .queryParam("page", page)
@@ -127,6 +93,119 @@ public class StickerGalleryApiClient {
             throw new BotException("Sticker Gallery API responded with error status " + e.getStatusCode(), e);
         } catch (RestClientException e) {
             LOGGER.error("❌ Сетевая ошибка Sticker Gallery API при запросе набора пользователя {}: {}", userId, e.getMessage());
+            throw new BotException("Failed to call Sticker Gallery API", e);
+        }
+    }
+
+    public boolean stickerSetExistsByName(String name) {
+        return getStickerSetByName(name) != null;
+    }
+
+    public StickerSetResponse getStickerSetByName(String name) {
+        String url = UriComponentsBuilder.fromHttpUrl(Objects.requireNonNull(properties.getSearchStickerSetUrl()))
+                .queryParam("name", name)
+                .toUriString();
+        LOGGER.debug("🔍 Запрос данных стикерсета '{}' через Sticker Gallery API", name);
+
+        try {
+            ResponseEntity<StickerSetResponse> response = restTemplate.getForEntity(url, StickerSetResponse.class);
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                return response.getBody();
+            }
+
+            LOGGER.warn("⚠️ Sticker Gallery API вернул неожиданный ответ при запросе '{}': status={}, body={}",
+                    name, response.getStatusCode(), response.getBody());
+            return null;
+        } catch (RestClientResponseException e) {
+            if (e.getStatusCode() == HttpStatus.NOT_FOUND) {
+                LOGGER.debug("ℹ️ Sticker Gallery API: стикерсет '{}' не найден", name);
+                return null;
+            }
+
+            LOGGER.error("❌ Ошибка Sticker Gallery API при запросе '{}': status={}, body={}",
+                    name, e.getStatusCode(), e.getResponseBodyAsString());
+            throw new BotException("Sticker Gallery API responded with error status " + e.getStatusCode(), e);
+        } catch (RestClientException e) {
+            LOGGER.error("❌ Сетевая ошибка Sticker Gallery API при запросе '{}': {}", name, e.getMessage());
+            throw new BotException("Failed to call Sticker Gallery API", e);
+        }
+    }
+
+    public StickerSetResponse getStickerSetById(Long id) {
+        String url = Objects.requireNonNull(properties.getStickerSetByIdUrl(id));
+        LOGGER.debug("🔍 Получаем стикерсет по ID {} через Sticker Gallery API", id);
+
+        try {
+            ResponseEntity<StickerSetResponse> response = restTemplate.getForEntity(url, StickerSetResponse.class);
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                return response.getBody();
+            }
+
+            LOGGER.warn("⚠️ Sticker Gallery API вернул неожиданный ответ при запросе ID {}: status={}, body={}",
+                    id, response.getStatusCode(), response.getBody());
+            return null;
+        } catch (RestClientResponseException e) {
+            if (e.getStatusCode() == HttpStatus.NOT_FOUND) {
+                LOGGER.debug("ℹ️ Sticker Gallery API: стикерсет с ID {} не найден", id);
+                return null;
+            }
+
+            LOGGER.error("❌ Ошибка Sticker Gallery API при запросе ID {}: status={}, body={}",
+                    id, e.getStatusCode(), e.getResponseBodyAsString());
+            throw new BotException("Sticker Gallery API responded with error status " + e.getStatusCode(), e);
+        } catch (RestClientException e) {
+            LOGGER.error("❌ Сетевая ошибка Sticker Gallery API при запросе ID {}: {}", id, e.getMessage());
+            throw new BotException("Failed to call Sticker Gallery API", e);
+        }
+    }
+
+    public StickerSetPageResponse getStickerSets(int page, int size, String sort, String direction,
+                                                 String categoryKeys, Boolean officialOnly,
+                                                 Long authorId, Boolean hasAuthorOnly, Boolean likedOnly) {
+        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(Objects.requireNonNull(properties.getStickerSetsUrl()))
+                .queryParam("page", page)
+                .queryParam("size", size);
+
+        if (sort != null && !sort.isBlank()) {
+            builder.queryParam("sort", sort);
+        }
+        if (direction != null && !direction.isBlank()) {
+            builder.queryParam("direction", direction);
+        }
+        if (categoryKeys != null && !categoryKeys.isBlank()) {
+            builder.queryParam("categoryKeys", categoryKeys);
+        }
+        if (officialOnly != null) {
+            builder.queryParam("officialOnly", officialOnly);
+        }
+        if (authorId != null) {
+            builder.queryParam("authorId", authorId);
+        }
+        if (hasAuthorOnly != null) {
+            builder.queryParam("hasAuthorOnly", hasAuthorOnly);
+        }
+        if (likedOnly != null) {
+            builder.queryParam("likedOnly", likedOnly);
+        }
+
+        String url = builder.toUriString();
+        LOGGER.debug("📄 Получаем список стикерсетов: {}", url);
+
+        try {
+            ResponseEntity<StickerSetPageResponse> response = restTemplate.getForEntity(url, StickerSetPageResponse.class);
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                return response.getBody();
+            }
+
+            LOGGER.error("❌ Sticker Gallery API вернул неожиданный ответ при запросе списка: status={}, body={}",
+                    response.getStatusCode(), response.getBody());
+            throw new BotException("Sticker Gallery API responded unexpectedly for sticker set list");
+        } catch (RestClientResponseException e) {
+            LOGGER.error("❌ Ошибка Sticker Gallery API при запросе списка стикерсетов: status={}, body={}",
+                    e.getStatusCode(), e.getResponseBodyAsString());
+            throw new BotException("Sticker Gallery API responded with error status " + e.getStatusCode(), e);
+        } catch (RestClientException e) {
+            LOGGER.error("❌ Сетевая ошибка Sticker Gallery API при запросе списка стикерсетов: {}", e.getMessage());
             throw new BotException("Failed to call Sticker Gallery API", e);
         }
     }
