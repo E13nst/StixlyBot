@@ -217,10 +217,10 @@ public class StickerBot extends AbstractTelegramBot {
                     UserStateService.StickerSetData packData = userStateService.getStickerSetData(msg.getChatId());
                     packData.setName(name);
                     
-                    // Сохраняем в базу данных
+                    // Отправляем запрос на создание набора через Sticker Gallery API
                     StickerSet savedPack = stickerSetService.createStickerSet(
                         msg.getChatId(), packData.getTitle(), packData.getName());
-                    LOGGER.info("📦 Создан стикерпак: Title='{}', Name='{}', UserId={}, DB_ID={}", 
+                    LOGGER.info("📦 Создан стикерпак через Sticker Gallery API: Title='{}', Name='{}', UserId={}, StickerSetId={}", 
                             packData.getTitle(), packData.getName(), msg.getChatId(), savedPack.getId());
                     
                     // Очищаем состояние пользователя

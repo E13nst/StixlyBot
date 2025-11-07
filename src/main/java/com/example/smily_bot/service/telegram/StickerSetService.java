@@ -5,6 +5,9 @@ import com.example.smily_bot.dto.PageResponse;
 import com.example.smily_bot.dto.StickerSetDto;
 import com.example.smily_bot.model.telegram.StickerSet;
 import com.example.smily_bot.model.telegram.StickerSetRepository;
+import com.example.smily_bot.service.external.stickergallery.StickerGalleryApiClient;
+import com.example.smily_bot.service.external.stickergallery.StickerSetCreateRequest;
+import com.example.smily_bot.service.external.stickergallery.StickerSetResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,24 +24,32 @@ public class StickerSetService {
     private static final Logger LOGGER = LoggerFactory.getLogger(StickerSetService.class);
     private final StickerSetRepository stickerSetRepository;
     private final TelegramBotApiService telegramBotApiService;
+    private final StickerGalleryApiClient stickerGalleryApiClient;
     
     @Autowired
-    public StickerSetService(StickerSetRepository stickerSetRepository, TelegramBotApiService telegramBotApiService) {
+    public StickerSetService(StickerSetRepository stickerSetRepository,
+                             TelegramBotApiService telegramBotApiService,
+                             StickerGalleryApiClient stickerGalleryApiClient) {
         this.stickerSetRepository = stickerSetRepository;
         this.telegramBotApiService = telegramBotApiService;
+        this.stickerGalleryApiClient = stickerGalleryApiClient;
     }
     
     public StickerSet createStickerSet(Long userId, String title, String name) {
-        StickerSet stickerSet = new StickerSet();
-        stickerSet.setUserId(userId);
-        stickerSet.setTitle(title);
-        stickerSet.setName(name);
+        StickerSetCreateRequest request = new StickerSetCreateRequest(userId, title, name, List.of());
+        StickerSetResponse response = stickerGalleryApiClient.createStickerSet(request);
 
-        StickerSet savedSet = stickerSetRepository.save(stickerSet);
-        LOGGER.info("📦 Создан стикерпак: ID={}, Title='{}', Name='{}', UserId={}", 
-                savedSet.getId(), title, name, userId);
+        StickerSet created = new StickerSet();
+        created.setId(response.getId());
+        created.setUserId(response.getUserId() != null ? response.getUserId() : userId);
+        created.setTitle(response.getTitle() != null ? response.getTitle() : title);
+        created.setName(response.getName() != null ? response.getName() : name);
+        created.setCreatedAt(response.getCreatedAt());
 
-        return savedSet;
+        LOGGER.info("📦 Стикерпак создан через Sticker Gallery API: ID={}, Title='{}', Name='{}', UserId={}",
+                created.getId(), created.getTitle(), created.getName(), created.getUserId());
+
+        return created;
     }
 
     public StickerSet findByName(String name) {

@@ -60,6 +60,7 @@ git push origin main
 | `TELEGRAM_API_TOKEN` | ✅ | Токен бота от @BotFather |
 | `TELEGRAM_BOT_NAME` | ✅ | Имя бота |
 | `OPENAI_API_KEY` | ✅ | API ключ OpenAI |
+| `STICKER_GALLERY_API_URL` | ✅ | Базовый URL Sticker Gallery API (например, `https://stickerartgallery-e13nst.amvera.io/api`) |
 | `BOT_WEBHOOK_URL` | ✅ | URL для webhook (только для продакшена) |
 | `SERVER_PORT` | ❌ | Порт сервера (по умолчанию: 8080) |
 
